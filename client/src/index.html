@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitor</title>
+    <style>
+       
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ System Monitor</h1>
+            <p>Keeping your system secure and up-to-date</p>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" data-tab="dashboard">Dashboard</div>
+                <div class="tab" data-tab="settings">Settings</div>
+            </div>
+
+            <div id="notification" class="notification"></div>
+
+            <!-- Dashboard Tab -->
+            <div class="tab-content active" id="dashboard">
+                <div class="status-grid">
+                    <div class="status-item" id="monitor-status">
+                        <div class="status-icon">⚙️</div>
+                        <div class="status-label">Monitor Status</div>
+                        <div class="status-value" id="status-text">Loading...</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon">🕒</div>
+                        <div class="status-label">Last Check</div>
+                        <div class="status-value" id="last-check">Never</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon">⏰</div>
+                        <div class="status-label">Next Check</div>
+                        <div class="status-value" id="next-check">-</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon">🖥️</div>
+                        <div class="status-label">Machine ID</div>
+                        <div class="status-value" id="machine-id">Loading...</div>
+                    </div>
+                </div>
+
+                <button class="button" id="run-check-btn">🔄 Run Check Now</button>
+                <button class="button secondary" id="test-connection-btn">🌐 Test Connection</button>
+            </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-content" id="settings">
+                <form id="settings-form">
+                    <div class="form-group">
+                        <label class="form-label">API Server URL</label>
+                        <input type="url" class="form-input" id="api-url" placeholder="http://localhost:3001">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">API Key</label>
+                        <input type="password" class="form-input" id="api-key" placeholder="your-api-key">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Check Interval (minutes)</label>
+                        <input type="number" class="form-input" id="check-interval" min="5" max="1440" value="30">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-checkbox">
+                            <input type="checkbox" id="run-on-startup">
+                            <span>Start with system</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-checkbox">
+                            <input type="checkbox" id="minimize-to-tray">
+                            <span>Minimize to system tray</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-checkbox">
+                            <input type="checkbox" id="enable-notifications">
+                            <span>Enable notifications</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="button">💾 Save Settings</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>System Monitor v1.0.0</p>
+            <p>Running in background • Close to minimize to tray</p>
+        </div>
+    </div>
+
+    <script>
+        // ✅ We no longer use `require('electron')`, we use window.api from preload.js
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                document.getElementById(tabName).classList.add('active');
+            });
+        });
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => { notification.style.display = 'none'; }, 5000);
+        }
+
+        function formatTime(date) {
+            if (!date) return 'Never';
+            return new Date(date).toLocaleString();
+        }
+
+        function formatTimeAgo(date) {
+            if (!date) return 'Never';
+            const now = new Date();
+            const diff = now - new Date(date);
+            const minutes = Math.floor(diff / 60000);
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            return `${Math.floor(hours / 24)}d ago`;
+        }
+
+        async function updateStatus() {
+            try {
+                const status = await window.api.getMonitorStatus();
+                const statusElement = document.getElementById('monitor-status');
+                const statusText = document.getElementById('status-text');
+                if (status.running) {
+                    statusElement.className = 'status-item running';
+                    statusText.textContent = 'Running';
+                } else {
+                    statusElement.className = 'status-item stopped';
+                    statusText.textContent = 'Stopped';
+                }
+                document.getElementById('last-check').textContent = formatTimeAgo(status.lastCheck);
+                document.getElementById('next-check').textContent = status.nextCheck ? formatTime(status.nextCheck) : '-';
+                document.getElementById('machine-id').textContent = status.machineId ? status.machineId.slice(0, 8) + '...' : 'Unknown';
+            } catch (error) {
+                console.error('Error updating status:', error);
+                showNotification('Error updating status', 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus();
+            setInterval(updateStatus, 30000);
+        });
+    </script>
+</body>
+</html>
