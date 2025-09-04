@@ -34,9 +34,9 @@ A **cross-platform system monitoring tool** that collects system health metrics 
 
 1. Navigate to the backend folder:
 
-cd backend
-npm install
-npm run dev
+1. cd backend
+2. npm install
+3. npm run dev
 
 2. Create a .env file in backend/ with the following variables:
 
@@ -52,6 +52,7 @@ JWT_SECRET=your_jwt_secret
 1. cd client
 2. npm install
 3. npm start
+
 
 
 
